@@ -1,0 +1,72 @@
+COMP 346 Programming Assignment #1
+Name: Christian Plourde
+Student ID: 26572499
+Section: WW
+
+Task 1:
+------------------------------------------------------------------------------------------------------------------------
+
+There are two threads, the Depositor and the Withdrawer threads, that are linked to the same account object. These
+threads are both linked to the same account. Since both of these threads are working in parallel, they are not waiting
+for one operation to be fully complete before beginning the next. This causes an atomicity bug, since for use to have a
+system that is atomic, each operation must be executed to completion before the next one can begin. We have no way of
+controlling this in the code we have not and so both threads just work on the same data as soon as they can, which
+breaks the account data completely, since there is no control to make sure that an operation is fully complete before
+another can start. For example, when one thread is updating the value in the memory location attributed to that
+account's balance, it is possible for another thread to work on that balance simultaneously which is exactly what is
+occurring. Since for example, the account balance can be decreased by the withdrawer at the same time that it is being
+increased by the depositor, it can contain erroneous data and thus it is possible for it to be in a consistent state.
+There are many ways to fix this, the first being to make both the deposit and withdraw methods synchronized. This will
+ensure that the thread executing that method has a lock on the data and will not allow other threads to work on it until
+it is done. Another option, although it may defeat the purpose of having these multiple threads, would be to call a join
+on all the threads of the deposit and then allow the withdraw threads to execute and join. The first solution is
+definitely preferable.
+
+Task 2:
+------------------------------------------------------------------------------------------------------------------------
+
+The main thread (entry point of the program, i.e. the main method) always starts first, and is then followed by other
+threads in the order that their run() method is called.
+
+The life-cycle of a thread consists of it going between essentially four states, described below:
+
+1. NEW - A thread will be in this state when it is first created. It will be in this state when we encounter the
+   Thread myThread = new Thread(); line of execution. This means that the thread has been created but is currently not
+   managed by the OS, or the JVM in this case.
+
+2. RUNNABLE - A thread will be in this state when we call the start() method on it. When this occurs, it will be ready
+   to run and it will wait until it has been allocated time by the resource manager.
+
+3. RUNNING - A thread will be in this state when it has resources allocated to it. The resource manager must switch it
+   to be the active thread, upon which its run() method will begin executing. If the thread is put into sleep() or it is
+   not the active thread, it will be put in a NON-RUNNABLE state, described below. It can also end up here if it's
+   waiting for a lock to execute its code. This will force it to wait until it has the undivided attention of the thing
+   it must work on. There are also other reasons the thread can end up here, for example, if it is waiting for IO.
+
+4. NON-RUNNABLE - A thread will be in this state if its sleep() method is called, or if the resource manager has
+   switched its active thread to another thread. In order to begin running again, the thread must move back to the
+   RUNNABLE state and then be allocated time by the resource manager once again in order to go back to the RUNNING
+   state.
+
+5. TERMINATED - A thread will become terminated when either we call the stop() method, which will stop its execution, or
+   if its run() method is finished. A thread exists in order to do a specific job, and so once that job is complete,
+   there is no reason for it to exist anymore and so it terminates.
+
+If the start order of the deposit and withdraw threads is reversed, the values are still seemingly random and erroneous,
+but on the other end. For example, if withdraw is started before deposit, then the values seem to be mostly positive
+and very large. This suggests that most of the deposits are done towards the end of the main threads execution. If they
+are reversed, the sign changes, which suggests consistent (but erroneous) behaviour. If the start calls for the two
+arrays of threads are made in different for loops, i.e. all the deposit threads are started before all the withdraw
+threads, then the consistency of the accounts is preserved.
+
+Task 5:
+------------------------------------------------------------------------------------------------------------------------
+
+The synchronized block is advantageous because it allows the method to run the things that don't directly affect the
+conflicting resource (in this case a memory address) at any moment in time, and only requires a lock for the actual
+operation that affects the shared resource. The synchronized method requires a lock in order to execute the entire
+method, which is wasteful in this case, because there is only one line affecting the shared resource, the rest is
+meaningless computation that does not affect the shared resource and therefore cannot lead to conflicting updates and
+fetches. If there was a significant amount of work done before the update (or after), then synchronizing the entire
+method would make the overall execution time of the program much longer than if only the block of code altering the
+shared resource is synchronized.
